@@ -7,7 +7,6 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/jinzhu/configor"
@@ -48,9 +47,10 @@ func main() {
 	}
 
 	choice := strings.TrimSpace(string(choiceBytes))
+	unexpandedFile, ok := Config.Entries[choice]
 
-	if choice != "" {
-		file, er := expand(Config.Entries[choice])
+	if choice != "" && ok {
+		file, er := expand(unexpandedFile)
 		if er != nil {
 			fmt.Println("error expanding ~ to /home/$USER")
 			return
@@ -60,25 +60,35 @@ func main() {
 		editor := Config.Options["editor"]
 		if editor == "" {
 			editor, _ = os.LookupEnv("EDITOR") //fallback
+			if editor == "" {
+				fmt.Println("err: $EDITOR is not defined and isn't set in config")
+			}
 		}
 		// strcmd := fmt.Sprintf("%s -e %s %s", Config.Options["terminal"], editor, file)
 		// edit := exec.Command(shell, "-c", strcmd) //using shell to expand ~/ to /home/user
 		edit := exec.Command(Config.Options["terminal"], "-e", editor, file)
 		if err := edit.Run(); err != nil {
-			fmt.Println("error running editor: ", err)
+			fmt.Println("error running ", Config.Options["terminal"], " with $EDITOR: ", err)
 			return
 		}
 
-		compiled, _ := regexp.MatchString("\\.h$", file)
-		if compiled {
-			cmd := exec.Command("make", choice)
-			cmd.Dir = dir
-			s, e := cmd.CombinedOutput()
-			if e != nil {
-				fmt.Println("error running make:", err)
-				return
+		_, err := os.Stat(dir + "/Makefile") //check for Makefile...
+		m1 := os.IsExist(err)
+		_, err = os.Stat(dir + "/makefile") //and makefile lower case...
+		m2 := os.IsExist(err)
+
+		//for the moment, this executes before vim is closed, which is essentially useless
+		if m1 || m2 {
+			if _, err := os.Stat(dir + "/makefile"); os.IsExist(err) {
+				cmd := exec.Command("make", choice)
+				cmd.Dir = dir
+				s, e := cmd.CombinedOutput()
+				if e != nil {
+					fmt.Println("error running make:", err)
+					return
+				}
+				fmt.Print(string(s))
 			}
-			fmt.Print(string(s))
 		}
 	}
 }

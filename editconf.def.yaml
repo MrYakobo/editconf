@@ -1,0 +1,17 @@
+entries:
+  dwm: ~/Downloads/dwm-6.1/config.h
+  slstatus: ~/Downloads/slstatus/config.h
+  slock: ~/Downloads/slock/config.h
+  ranger: ~/.config/ranger/rc.conf
+  editconf: ~/.config/editconf.yaml
+options:
+  terminal: urxvtc
+  editor: vim
+dmenu:
+  b: true
+  fn: fira mono:12
+  sb: "#ff0"
+  sf: "#000"
+  nf: "#fff"
+  nb: "#222"
+  p: "config:"
